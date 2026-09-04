@@ -1,0 +1,70 @@
+name: Deploy NEXUS ONE to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Validate and package demo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Rebuild the static application
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cat payload/payload.part.* > /tmp/nexus-site.tar.gz.b64
+          echo "a08293bf8a280134ba1fbde2d534a46dc1d74cf1a66e9e630f2e32fc2b61e7a9  /tmp/nexus-site.tar.gz.b64" | sha256sum --check
+          base64 --decode /tmp/nexus-site.tar.gz.b64 > /tmp/nexus-site.tar.gz
+          echo "42bbd72840d9b1229f93f9ca67ae431292445579840221b49be9470531192cd5  /tmp/nexus-site.tar.gz" | sha256sum --check
+          tar -xzf /tmp/nexus-site.tar.gz -C dist
+
+      - name: Validate NEXUS ONE
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(index.html styles.css app.js manifest.webmanifest icon.svg sw.js 404.html robots.txt .nojekyll)
+          for file in "${required[@]}"; do
+            test -e "dist/$file" || { echo "Missing required file: $file"; exit 1; }
+          done
+          grep -q "NEXUS ONE" dist/index.html
+          grep -q '"display":"standalone"' dist/manifest.webmanifest
+          grep -q "serviceWorker.register" dist/app.js
+          node --check dist/app.js
+          python -m json.tool dist/manifest.webmanifest > /dev/null
+          echo "NEXUS ONE validated successfully."
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    name: Publish GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
