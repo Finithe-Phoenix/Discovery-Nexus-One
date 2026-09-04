@@ -28,11 +28,18 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          cat payload/payload.part.* > /tmp/nexus-site.tar.gz.b64
-          echo "a08293bf8a280134ba1fbde2d534a46dc1d74cf1a66e9e630f2e32fc2b61e7a9  /tmp/nexus-site.tar.gz.b64" | sha256sum --check
-          base64 --decode /tmp/nexus-site.tar.gz.b64 > /tmp/nexus-site.tar.gz
-          echo "42bbd72840d9b1229f93f9ca67ae431292445579840221b49be9470531192cd5  /tmp/nexus-site.tar.gz" | sha256sum --check
-          tar -xzf /tmp/nexus-site.tar.gz -C dist
+
+          cat payload/payload.part.* > /tmp/nexus-base.tar.gz.b64
+          echo "a08293bf8a280134ba1fbde2d534a46dc1d74cf1a66e9e630f2e32fc2b61e7a9  /tmp/nexus-base.tar.gz.b64" | sha256sum --check
+          base64 --decode /tmp/nexus-base.tar.gz.b64 > /tmp/nexus-base.tar.gz
+          echo "42bbd72840d9b1229f93f9ca67ae431292445579840221b49be9470531192cd5  /tmp/nexus-base.tar.gz" | sha256sum --check
+          tar -xzf /tmp/nexus-base.tar.gz -C dist
+
+          cat payload/delta.part.* > /tmp/nexus-assets.tar.xz.b64
+          echo "9d7a6bf8bf1b10c534604d13410267c7be3df606a07bb04741fcf4383a9e4234  /tmp/nexus-assets.tar.xz.b64" | sha256sum --check
+          base64 --decode /tmp/nexus-assets.tar.xz.b64 > /tmp/nexus-assets.tar.xz
+          echo "f39d485363547db093852e19cf6142e56eae57e2a7ee71c23153c9469938fffe  /tmp/nexus-assets.tar.xz" | sha256sum --check
+          tar -xJf /tmp/nexus-assets.tar.xz -C dist
 
       - name: Validate NEXUS ONE
         shell: bash
