@@ -1,77 +1,66 @@
-name: Deploy NEXUS ONE to GitHub Pages
+name: Validate NEXUS ONE Enterprise
 
 on:
   push:
-    branches:
-      - main
+    branches: [main, gh-pages, feat/enterprise-v3]
+  pull_request:
+    branches: [main, gh-pages]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: github-pages
+  group: nexus-validation-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Validate and package demo
+  acceptance:
+    name: Model, browser and PWA acceptance
     runs-on: ubuntu-latest
+    timeout-minutes: 12
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-
-      - name: Rebuild the static application
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p dist
-
-          cat payload/payload.part.* > /tmp/nexus-base.tar.gz.b64
-          echo "a08293bf8a280134ba1fbde2d534a46dc1d74cf1a66e9e630f2e32fc2b61e7a9  /tmp/nexus-base.tar.gz.b64" | sha256sum --check
-          base64 --decode /tmp/nexus-base.tar.gz.b64 > /tmp/nexus-base.tar.gz
-          echo "42bbd72840d9b1229f93f9ca67ae431292445579840221b49be9470531192cd5  /tmp/nexus-base.tar.gz" | sha256sum --check
-          tar -xzf /tmp/nexus-base.tar.gz -C dist
-
-          cat payload/delta.part.* > /tmp/nexus-assets.tar.xz.b64
-          echo "9d7a6bf8bf1b10c534604d13410267c7be3df606a07bb04741fcf4383a9e4234  /tmp/nexus-assets.tar.xz.b64" | sha256sum --check
-          base64 --decode /tmp/nexus-assets.tar.xz.b64 > /tmp/nexus-assets.tar.xz
-          echo "f39d485363547db093852e19cf6142e56eae57e2a7ee71c23153c9469938fffe  /tmp/nexus-assets.tar.xz" | sha256sum --check
-          tar -xJf /tmp/nexus-assets.tar.xz -C dist
-
-      - name: Validate NEXUS ONE
-        shell: bash
-        run: |
-          set -euo pipefail
-          required=(index.html styles.css app.js manifest.webmanifest icon.svg sw.js 404.html robots.txt .nojekyll)
-          for file in "${required[@]}"; do
-            test -e "dist/$file" || { echo "Missing required file: $file"; exit 1; }
-          done
-          grep -q "NEXUS ONE" dist/index.html
-          grep -q '"display":"standalone"' dist/manifest.webmanifest
-          grep -q "serviceWorker.register" dist/app.js
-          node --check dist/app.js
-          python -m json.tool dist/manifest.webmanifest > /dev/null
-          echo "NEXUS ONE validated successfully."
-
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v6
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
-          path: dist
-
-  deploy:
-    name: Publish GitHub Pages
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
+          python-version: '3.13'
+      - name: Install browser test dependencies
+        run: |
+          python -m pip install -r requirements-test.txt
+          python -m playwright install --with-deps chromium
+      - name: Validate sources and model
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p test-results
+          node --version
+          node --check demo-store.js
+          node --check enterprise.js
+          node --check sw.js
+          python -m json.tool manifest.webmanifest > /dev/null
+          node --test tests/model.test.cjs | tee test-results/model-tests.tap
+      - name: Exercise browser workflows over HTTP
+        run: python tests/browser_smoke.py
+      - name: Record acceptance summary
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p = Path('test-results/browser-report.json')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
+              out.write('## NEXUS ONE enterprise acceptance\n\n')
+              if p.exists():
+                  r = json.loads(p.read_text())
+                  out.write(f"Mode: {r.get('mode')}\n\nPassed browser checks: {r.get('passed')}\n\nSkipped: {r.get('skipped', [])}\n\nJavaScript errors: {r.get('page_errors', [])}\n")
+              else:
+                  out.write('Browser report unavailable. Review the failed step.\n')
+          PY
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: nexus-enterprise-v3-evidence
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: warn

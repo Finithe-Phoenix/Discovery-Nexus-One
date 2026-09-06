@@ -1,1 +1,17 @@
-{"name":"NEXUS ONE · Centro de Control Multioperador","short_name":"NEXUS ONE","description":"Centro empresarial multioperador para SIM, eSIM, inventario, distribución, ventas, saldo, crédito y comisiones.","lang":"es-MX","start_url":"./","scope":"./","display":"standalone","orientation":"any","background_color":"#07111f","theme_color":"#07111f","categories":["business","productivity","finance"],"icons":[{"src":"./nexus-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{
+  "id": "./",
+  "name": "NEXUS ONE · Control Empresarial",
+  "short_name": "NEXUS ONE",
+  "description": "Demostración local multioperador. Datos y operaciones ficticios.",
+  "lang": "es-MX",
+  "start_url": "./#overview",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f5f3",
+  "theme_color": "#142820",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "./nexus-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
