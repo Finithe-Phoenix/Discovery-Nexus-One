@@ -1,0 +1,75 @@
+# One-time source transfer. Removed before integration into main or gh-pages.
+name: Stage reviewed evaluation v6 source
+on:
+  push:
+    branches: [feat/business-evaluation-v6]
+    paths: [.github/workflows/import-evaluation-v6.yml]
+permissions:
+  contents: write
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/business-evaluation-v6
+          fetch-depth: 2
+      - name: Verify and apply exact reviewed source patch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import os, base64, hashlib, json, lzma, re, subprocess, urllib.request
+          from pathlib import Path
+          repo = os.environ['GITHUB_REPOSITORY']
+          assert repo == 'Finithe-Phoenix/Discovery-Nexus-One'
+          assert os.environ['GITHUB_REF'] == 'refs/heads/feat/business-evaluation-v6'
+          base = subprocess.check_output(['git','rev-parse','HEAD^']).decode().strip()
+          assert base == '24c98bc6cf06f13114a22083803f354435368f1b', 'Unexpected source base; do not overwrite concurrent changes.'
+          shas = ['c329e545c89c03bfa01cec08bf24435474ee5d0b','23e3116d7ed84f9790f1412a2bd5a84633d7dc0f','7e0a638b4b96f8143c88552eb73566d9b549363a','6f7c18ea069644c428aa74c27565d0b7101b7191']
+          chunks = []
+          for sha in shas:
+              req = urllib.request.Request(f'https://api.github.com/repos/{repo}/git/blobs/{sha}', headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'})
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  obj = json.load(response)
+              assert obj['sha'] == sha and obj['encoding'] == 'base64'
+              chunk = base64.b64decode(obj['content'])
+              assert hashlib.sha1(f'blob {len(chunk)}\0'.encode()+chunk).hexdigest() == sha
+              chunks.append(chunk)
+          compressed = b''.join(chunks)
+          assert len(compressed) == 26968
+          assert hashlib.sha256(compressed).hexdigest() == '2b7404fab924cbc4aa8b313cc899498c92ea7b0d30ab1204433c430af2cbd69b'
+          patch = lzma.decompress(compressed)
+          assert len(patch) == 97149
+          expected = {'README.md','decision-core.js','decision.css','decision.js','docs/BUSINESS_EVALUATION.md','enterprise.js','experience.js','index.html','sw.js','tests/browser_smoke.py','tests/decision.test.cjs','tests/decision_smoke.py'}
+          changes = re.findall(r'^diff --git a/(\S+) b/(\S+)$',patch.decode(),re.MULTILINE)
+          assert len(changes) == 12 and all(a==b and a in expected for a,b in changes)
+          assert set(b for a,b in changes) == expected
+          assert b'new file mode 120000' not in patch and b'new file mode 160000' not in patch
+          Path('/tmp/nexus-v6.patch').write_bytes(patch)
+          subprocess.run(['git','apply','--check','/tmp/nexus-v6.patch'], check=True)
+          subprocess.run(['git','apply','/tmp/nexus-v6.patch'], check=True)
+          changed = set(subprocess.check_output(['git','ls-files','--modified','--others','--exclude-standard']).decode().splitlines())
+          assert changed == expected, changed
+          subprocess.run(['git','add','--',*sorted(expected)],check=True)
+          print('Verified source transfer: 12 readable source files; no deployment or workflow changes.')
+          PY
+      - name: Check syntax and model before creating source commit
+        run: |
+          node --check enterprise.js
+          node --check experience.js
+          node --check decision.js
+          node --check decision-core.js
+          node --check sw.js
+          node --test tests/model.test.cjs tests/decision.test.cjs
+      - name: Commit only to isolated feature branch
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/feat/business-evaluation-v6
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat: add guided business evaluation, session evidence, capacity model and decision summary'
+          git push origin HEAD:feat/business-evaluation-v6
+          echo '## Reviewed v6 source staged' >> "$GITHUB_STEP_SUMMARY"
+          git rev-parse HEAD >> "$GITHUB_STEP_SUMMARY"
