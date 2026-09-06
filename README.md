@@ -1,10 +1,16 @@
-# NEXUS ONE · Business Evaluation v6
+# NEXUS ONE · Executive Readiness v7
 
 **Una plataforma para explorar la operación. Una historia para explicar su valor.**
 
 Demo: https://finithe-phoenix.github.io/Discovery-Nexus-One/
 
 NEXUS ONE es una demostración interna multioperador de SIM, eSIM, inventario, red comercial, monedero, crédito, ventas, comisiones y trazabilidad. Los datos, precios, productos y operaciones son ficticios. No se contacta a operadores, se activan líneas, se reciben depósitos ni se entrega una eSIM real.
+
+## Una ruta ejecutiva, dos momentos
+
+La portada conecta ahora las dos experiencias que sostienen una reunión corporativa. **Presentar historia** abre los seis capítulos que explican el modelo operativo; **Evaluar solución** enlaza la prioridad del comprador con evidencia generada durante la sesión, una hipótesis explícita de capacidad y el siguiente paso propuesto. Si una evaluación ya comenzó, la portada muestra su avance sin convertirlo en una puntuación comercial.
+
+La ruta conserva la identidad grafito, porcelana y cobalto, el tablero visible y todos los límites de la demostración. No añade procesos, integraciones ni compromisos fuera del alcance acordado.
 
 ## Evaluar el valor, no solo recorrer pantallas
 
@@ -63,7 +69,7 @@ Abrir http://localhost:8000/. PWA y caché requieren HTTPS o localhost. La simul
 | `enterprise.js` | Consola y puente explícito `NexusApp` |
 | `enterprise.css` / `premium.css` | Base y lenguaje visual v4 |
 | `experience.js` / `experience.css` | Historia, interacciones y gráfico comparativo v5 |
-| `decision-core.js` / `decision.js` / `decision.css` | Evaluación, supuestos y resumen local v6 |
+| `decision-core.js` / `decision.js` / `decision.css` | Evaluación v6 y ruta ejecutiva v7 |
 | `index.html`, `sw.js`, `manifest.webmanifest` | Entrada, caché e instalación |
 | `tests/` | Modelo, regresión de consola y aceptación de historia |
 

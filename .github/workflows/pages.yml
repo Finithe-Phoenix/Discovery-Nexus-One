@@ -2,7 +2,7 @@ name: Validate NEXUS ONE Enterprise
 
 on:
   push:
-    branches: [main, gh-pages, feat/enterprise-v3, feat/ui-v4-premium, feat/executive-experience-v5, feat/business-evaluation-v6]
+    branches: [main, gh-pages, feat/enterprise-v3, feat/ui-v4-premium, feat/executive-experience-v5, feat/business-evaluation-v6, feat/executive-readiness-v7]
   pull_request:
     branches: [main, gh-pages]
   workflow_dispatch:
@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   acceptance:
-    name: Model, console, story, evaluation and PWA acceptance
+    name: Model, console, executive route, evaluation and PWA acceptance
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -44,10 +44,10 @@ jobs:
           test -s experience.css
           test -s decision.css
           test ! -e .github/workflows/import-evaluation-v6.yml
-          grep -q 'enterprise.js?v=6.0.0' index.html
+          grep -q 'enterprise.js?v=7.0.0' index.html
           grep -q 'experience.js?v=6.0.0' index.html
-          grep -q 'decision.js?v=6.0.0' index.html
-          grep -q 'decision.css?v=6.0.0' sw.js
+          grep -q 'decision.js?v=7.0.0' index.html
+          grep -q 'decision.css?v=7.0.0' sw.js
           python -m json.tool manifest.webmanifest > /dev/null
           node --test tests/model.test.cjs tests/decision.test.cjs | tee test-results/model-tests.tap
       - name: Exercise console workflows over HTTP
@@ -65,7 +65,7 @@ jobs:
           from pathlib import Path
           Path('test-results').mkdir(exist_ok=True)
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
-              out.write('## NEXUS ONE Business Evaluation v6\n\n')
+              out.write('## NEXUS ONE Executive Readiness v7\n\n')
               out.write('Commit: ' + os.environ['GITHUB_SHA'] + '\n\n')
               for name in ['browser-report.json', 'experience-report.json', 'decision-report.json']:
                   p = Path('test-results') / name
@@ -76,7 +76,7 @@ jobs:
                   else:
                       out.write('Report unavailable. Review the failed step.\n\n')
           files = subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
-          with zipfile.ZipFile('test-results/NEXUS_ONE_Business_Evaluation_v6.zip','w',zipfile.ZIP_DEFLATED) as z:
+          with zipfile.ZipFile('test-results/NEXUS_ONE_Executive_Readiness_v7.zip','w',zipfile.ZIP_DEFLATED) as z:
               for name in files:
                   if name and Path(name).is_file():
                       z.write(name)
@@ -85,7 +85,7 @@ jobs:
       - uses: actions/upload-artifact@v5
         if: always()
         with:
-          name: nexus-v6-evidence
+          name: nexus-v7-evidence
           path: test-results/
           retention-days: 7
           if-no-files-found: warn

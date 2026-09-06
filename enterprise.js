@@ -142,7 +142,7 @@
     const line=pts.map((p,i)=>`${i?'L':'M'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
     const labels=[...new Set([0,Math.floor((data.length-1)/3),Math.floor((data.length-1)*2/3),data.length-1])];
     const shortDate=at=>new Intl.DateTimeFormat('es-MX',{day:'2-digit',month:'short',timeZone:'America/Mexico_City'}).format(new Date(at));
-    return `<div class="sales-chart"><svg viewBox="0 0 720 225" preserveAspectRatio="none" role="img" aria-label="Ventas diarias en pesos mexicanos. Tabla de datos disponible debajo del gráfico."><defs><linearGradient id="chart-shade" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#518969" stop-opacity=".19"/><stop offset="1" stop-color="#518969" stop-opacity="0"/></linearGradient></defs>
+    return `<div class="sales-chart"><svg viewBox="0 0 720 225" preserveAspectRatio="none" role="img" aria-label="Ventas diarias en pesos mexicanos. Tabla de datos disponible debajo del gráfico."><defs><linearGradient id="chart-shade" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#3a78ed" stop-opacity=".20"/><stop offset="1" stop-color="#3a78ed" stop-opacity="0"/></linearGradient></defs>
     ${[0,1,2,3].map(i=>`<line class="chart-grid" x1="60" y1="${30+i*50}" x2="685" y2="${30+i*50}"/><text class="chart-text" x="49" y="${34+i*50}" text-anchor="end">${compact(Math.round(max*(3-i)/3))}</text>`).join('')}
     <path d="${line} L${pts.at(-1).x},180 L60,180Z" fill="url(#chart-shade)"/><path class="chart-line" d="${line}"/>
     ${pts.map(p=>`<circle class="chart-dot" cx="${p.x}" cy="${p.y}" r="${pts.length===1?5:2.6}"><title>${shortDate(p.at)}: ${money(p.value)}</title></circle>`).join('')}
