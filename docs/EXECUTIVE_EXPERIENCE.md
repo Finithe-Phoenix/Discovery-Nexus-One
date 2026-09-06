@@ -2,7 +2,7 @@
 
 ## Entrada
 
-Abrir la URL HTTPS y verificar la etiqueta **Executive Experience v5.0** en el menú. Para presentar, seleccionar **Presentar**. La consola habitual continúa disponible; no existe una introducción obligatoria al entrar.
+Abrir la URL HTTPS y verificar la etiqueta **Executive Readiness v7.0** en el menú. La historia de seis capítulos se conserva desde v5. Para presentarla, seleccionar **Presentar** o **Presentar historia** en la ruta ejecutiva del tablero. La consola habitual continúa disponible; no existe una introducción obligatoria al entrar.
 
 Usar **Comenzar la historia** para el relato de seis capítulos. **Recorrido libre** abre el recorrido anterior de siete módulos. En pantallas pequeñas el contenido se desplaza dentro del diálogo; los capítulos permanecen en el pie. Escape cierra y devuelve el foco. Las flechas cambian de capítulo desde el título o la navegación, no mientras se interactúa con el panel operativo.
 
