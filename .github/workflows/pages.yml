@@ -2,7 +2,7 @@ name: Validate NEXUS ONE Enterprise
 
 on:
   push:
-    branches: [main, gh-pages, feat/enterprise-v3, feat/ui-v4-premium]
+    branches: [main, gh-pages, feat/enterprise-v3, feat/ui-v4-premium, feat/executive-experience-v5]
   pull_request:
     branches: [main, gh-pages]
   workflow_dispatch:
@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   acceptance:
-    name: Model, browser and PWA acceptance
+    name: Model, console, story and PWA acceptance
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -36,34 +36,49 @@ jobs:
           node --version
           node --check demo-store.js
           node --check enterprise.js
+          node --check experience.js
           node --check sw.js
           test -s premium.css
-          grep -q 'premium.css?v=4.0.0' index.html
-          grep -q "premium.css?v=4.0.0" sw.js
+          test -s experience.css
+          grep -q 'experience.js?v=5.0.0' index.html
+          grep -q 'enterprise.js?v=5.0.0' index.html
+          grep -q 'experience.css?v=5.0.0' sw.js
           python -m json.tool manifest.webmanifest > /dev/null
           node --test tests/model.test.cjs | tee test-results/model-tests.tap
-      - name: Exercise browser workflows over HTTP
+      - name: Exercise console workflows over HTTP
         run: python tests/browser_smoke.py
-      - name: Record acceptance summary
+      - name: Exercise story, visual layouts and offline reload
+        run: python tests/experience_smoke.py
+      - name: Record acceptance summary and source
         if: always()
         shell: bash
         run: |
           python - <<'PY'
-          import json, os
+          import json, os, subprocess, zipfile
           from pathlib import Path
-          p = Path('test-results/browser-report.json')
+          Path('test-results').mkdir(exist_ok=True)
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
-              out.write('## NEXUS ONE enterprise acceptance\n\n')
-              if p.exists():
-                  r = json.loads(p.read_text())
-                  out.write(f"Mode: {r.get('mode')}\n\nPassed browser checks: {r.get('passed')}\n\nSkipped: {r.get('skipped', [])}\n\nJavaScript errors: {r.get('page_errors', [])}\n")
-              else:
-                  out.write('Browser report unavailable. Review the failed step.\n')
+              out.write('## NEXUS ONE Executive Experience v5\n\n')
+              out.write('Commit: ' + os.environ['GITHUB_SHA'] + '\n\n')
+              for name in ['browser-report.json', 'experience-report.json']:
+                  p = Path('test-results') / name
+                  out.write('### ' + name + '\n\n')
+                  if p.exists():
+                      r = json.loads(p.read_text())
+                      out.write(f"Mode: {r.get('mode')}\n\nPassed: {r.get('passed')}\n\nSkipped: {r.get('skipped', [])}\n\nJavaScript errors: {r.get('page_errors', [])}\n\n")
+                  else:
+                      out.write('Report unavailable. Review the failed step.\n\n')
+          files = subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          with zipfile.ZipFile('test-results/NEXUS_ONE_Executive_Experience_v5.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for name in files:
+                  if name and Path(name).is_file():
+                      z.write(name)
+          Path('test-results/commit.txt').write_text(os.environ['GITHUB_SHA'] + '\n')
           PY
       - uses: actions/upload-artifact@v5
         if: always()
         with:
-          name: nexus-executive-ui-v4-evidence
+          name: nexus-executive-v5-evidence
           path: test-results/
           retention-days: 7
           if-no-files-found: warn

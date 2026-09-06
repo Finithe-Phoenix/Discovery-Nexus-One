@@ -28,13 +28,14 @@ def load(page, url):
         assert response and response.ok, 'HTTP entry point failed'
     else:
         html = (ROOT / 'index.html').read_text()
-        html = re.sub(r'<link rel="stylesheet"[^>]+>', lambda _: '<style>' + (ROOT / 'enterprise.css').read_text() + '</style>', html)
+        html = re.sub(r'<link rel="stylesheet"[^>]+>', lambda m: '<style>' + (ROOT / re.search(r'href="\./([^"?]+)', m.group()).group(1)).read_text() + '</style>', html)
         html = re.sub(r'<script src="[^>]+></script>', '', html)
         html = re.sub(r'<link rel="(?:manifest|icon)"[^>]+>', '', html)
         page.evaluate('''() => {const d = new Map();Object.defineProperty(window,'localStorage',{configurable:true,value:{getItem:k=>d.get(k)??null,setItem:(k,v)=>d.set(k,String(v)),removeItem:k=>d.delete(k),clear:()=>d.clear()}})}''')
         page.set_content(html, wait_until='domcontentloaded')
         page.add_script_tag(content=(ROOT / 'demo-store.js').read_text())
         page.add_script_tag(content=(ROOT / 'enterprise.js').read_text())
+        page.add_script_tag(content=(ROOT / 'experience.js').read_text())
     page.wait_for_selector('#view .kpi')
     page.wait_for_timeout(100)
 
@@ -173,6 +174,7 @@ def run():
             page.locator('.top-actions [data-action="theme"]').click()
             page.set_viewport_size({'width':1920,'height':1080})
             page.locator('.presentation-launch').click()
+            page.locator('[data-exp=\"free\"]').click()
             check('presentation mode hides sidebar', not page.locator('#sidebar').is_visible())
             page.screenshot(path=str(OUT / 'presentation-viewport.png'))
             for target in ['operators','inventory','sales','wallet','commissions','audit']:

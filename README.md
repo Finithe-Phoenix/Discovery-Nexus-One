@@ -1,77 +1,78 @@
-# NEXUS ONE · Enterprise demo v3
+# NEXUS ONE · Executive Experience v5
 
-**Una consola empresarial multioperador para demostrar operación, no solo pantallas.**
+**Una plataforma para explorar la operación. Una historia para explicar su valor.**
 
 Demo: https://finithe-phoenix.github.io/Discovery-Nexus-One/
 
-La experiencia reúne dirección, distribución y puntos de venta en una aplicación estática. El escenario es completamente ficticio; ninguna operación activa líneas, recibe depósitos, entrega perfiles eSIM reales o contacta a un operador.
+NEXUS ONE es una demostración interna multioperador de SIM, eSIM, inventario, red comercial, monedero, crédito, ventas, comisiones y trazabilidad. Los datos, precios, productos y operaciones son ficticios. No se contacta a operadores, se activan líneas, se reciben depósitos ni se entrega una eSIM real.
 
-## Experiencia
+## Presentar
 
-Once áreas de trabajo: Centro de control, Operadores, Inventario SIM/eSIM, Red comercial, Ventas y activaciones, Monedero y crédito, Comisiones y liquidación, Autorizaciones, Reportes, Trazabilidad y Configuración. Los perfiles restringen las vistas según el contexto de demostración.
+El botón **Presentar** abre Executive Experience: seis capítulos interactivos con la identidad grafito, porcelana y cobalto. La apertura no bloquea el acceso habitual a la consola ni se reproduce automáticamente.
 
-El diseño incluye temas claro y oscuro, navegación móvil, tablas adaptadas a tarjetas, búsqueda global con Ctrl/Cmd K, exportación CSV, detalle lateral, comprobantes y un informe ejecutivo imprimible. **Presentar** abre un recorrido de siete momentos con una superficie ampliada para exposición; las flechas avanzan y retroceden, y Escape termina el recorrido.
+1. **Visión:** matriz, distribución, puntos de venta y operadores en un modelo conceptual.
+2. **Universos:** resultados consolidados y por operador, calculados desde las operaciones del escenario.
+3. **Trazabilidad:** una SIM ficticia existente, su responsable y su historia.
+4. **Operación:** confirmación explícita de una venta o rechazo simulado; cinco efectos conectados al modelo.
+5. **Control:** solicitud de abono por el punto y autorización de matriz, con actualización del saldo una sola vez.
+6. **Evidencia:** resultados y eventos relacionados con la última venta y el abono preparados en esta historia, con acceso al informe y a la consola.
 
-## Procesos conectados
+**Comenzar la historia** avanza al segundo capítulo. **Recorrido libre** conserva la presentación guiada de siete módulos de la consola. Escape cierra el diálogo y devuelve el foco. El capítulo actual se conserva mientras permanece abierta la misma página; una recarga reinicia el recorrido, pero mantiene los datos locales del modelo.
 
-- **Venta:** selección de punto, operador y producto; revisión; confirmación o rechazo simulado. Una confirmación afecta inventario, saldo/crédito, venta, comisión y bitácora. Una misma referencia no se procesa dos veces.
-- **Inventario:** recepción de un lote ficticio en matriz, asignación a un punto habilitado, estado en tránsito y confirmación de recepción. Una unidad específica puede venderse desde su detalle.
-- **Monedero:** solicitud de abono con referencia DEMO, revisión por matriz y autorización o rechazo. El saldo solo aumenta al autorizar y no se acredita dos veces.
-- **Comisiones:** cálculo por venta confirmada, corte según perfil/operador/periodo y exportación. El corte no realiza dispersión bancaria.
+Guía: [Executive Experience](docs/EXECUTIVE_EXPERIENCE.md). El [guion de módulos](docs/DEMO_GUIDE.md) corresponde al recorrido libre anterior.
 
-## Escenario reproducible
+## Consola conservada
 
-El corte es **05 de septiembre de 2026**, con 60 días de historial generado determinísticamente, 24 puntos de venta y seis distribuidores. Los cuatro universos son Movistar, AT&T, Bait y Otros. Los nombres de operadores no implican convenios ni integración. Productos, precios, reglas y comisiones son ficticios.
+Once áreas: Centro de control, Operadores, Inventario SIM/eSIM, Red comercial, Ventas, Monedero, Comisiones, Autorizaciones, Reportes, Trazabilidad y Configuración. Tres vistas: Dirección, Distribuidor y Punto de venta. Incluye temas claro/oscuro, búsqueda Ctrl/Cmd K, exportación CSV, comprobantes, informe imprimible y adaptación móvil.
 
-Los importes del modelo se guardan en centavos enteros. Los indicadores se calculan desde las operaciones, no mediante números independientes por pantalla. El inventario representa una fotografía inicial; los saldos son saldos de apertura del escenario y los nuevos movimientos los modifican. Inventario y monederos no se recalculan al cambiar de periodo. Cada punto tiene un monedero compartido entre sus operadores.
+El gráfico ejecutivo compara el periodo seleccionado con el anterior de igual duración. Un control deslizante accesible por teclado o toque muestra valores diarios y ambas fechas. La tabla del gráfico contiene la misma información. Los datos no son cifras independientes colocadas por pantalla.
 
-La información se guarda en `localStorage` únicamente en ese navegador. No existe sincronización entre dispositivos. En Configuración, **Restablecer escenario** elimina los cambios locales de esta demo y conserva el tema elegido.
+## Escenario y límites
 
-## Ejecutar localmente
+Corte fijo: **05 de septiembre de 2026**. Sesenta días de historial sintético, 24 puntos, seis distribuidores y cuatro universos: Movistar, AT&T, Bait y Otros. Las marcas no implican acuerdos ni integración. Los importes del modelo se guardan en centavos enteros.
 
-No requiere npm, build, backend, CDN ni claves:
+Inventario y saldos de apertura son una fotografía del escenario; no se recalculan con el filtro de periodo. El monedero es único por punto y compartido entre sus operadores. Nuevas ventas, abonos, recepciones y cortes sí modifican sus registros. Los datos se guardan en `localStorage` solo en ese navegador, sin sincronización entre dispositivos.
+
+Navegar, cambiar capítulos o explorar operadores **no genera operaciones ni restablece datos**. Solo los botones explícitos de confirmación escriben en el modelo. Configuración > Restablecer escenario elimina los cambios locales de esta demo, no los del repositorio.
+
+El selector de perfil no es autenticación; la bitácora local no es inmutable. Backend, seguridad en servidor, integraciones, conciliaciones, disponibilidad, cumplimiento y rendimiento productivos requieren implementación y validación separadas. No se afirma certificación de accesibilidad ni compatibilidad con todos los dispositivos.
+
+No incluye tienda pública, checkout, WhatsApp Business, apps nativas ni datos confidenciales. No introducir datos reales.
+
+## Desarrollo
+
+Sin npm, compilación, backend, CDN ni claves:
 
 ```bash
 python -m http.server 8000
 ```
 
-Abrir http://localhost:8000/. La PWA y el service worker requieren HTTPS o localhost. El modo sin conexión sirve exclusivamente para la simulación, después de una primera carga completa. La instalación depende del navegador y del dispositivo.
-
-## Código y publicación
+Abrir http://localhost:8000/. PWA y caché requieren HTTPS o localhost. La simulación sin conexión requiere una primera carga completa; no implica operar servicios telefónicos sin red.
 
 | Archivo | Responsabilidad |
 |---|---|
-| `index.html` | Estructura semántica de la consola |
-| `enterprise.css` | Sistema visual, responsive, temas y estilos de impresión |
-| `demo-store.js` | Escenario, filtros, reglas e integridad de operaciones |
-| `enterprise.js` | Vistas, navegación, formularios y presentación |
-| `sw.js` | Caché limitada a los recursos de esta demo |
-| `manifest.webmanifest` | Identidad e instalación PWA |
-| `tests/` | Pruebas del modelo y aceptación de navegador |
-| `docs/DEMO_GUIDE.md` | Guion para una presentación corporativa |
+| `demo-store.js` | Modelo y reglas de las operaciones; sin cambios en v5 |
+| `enterprise.js` | Consola y puente explícito `NexusApp` |
+| `enterprise.css` / `premium.css` | Base y lenguaje visual v4 |
+| `experience.js` / `experience.css` | Historia, interacciones y gráfico comparativo v5 |
+| `index.html`, `sw.js`, `manifest.webmanifest` | Entrada, caché e instalación |
+| `tests/` | Modelo, regresión de consola y aceptación de historia |
 
-La publicación existente utiliza **`gh-pages` / raíz**. `main` conserva la misma base de código tras la entrega. Las mejoras deben probarse primero en una rama de trabajo y después integrarse en `main` y `gh-pages` sin reescribir el historial. El workflow de validación **no publica**: evita que un push al origen vuelva a reconstruir los antiguos payloads. El despliegue de Pages sigue siendo el de la rama configurada.
+La publicación usa **gh-pages / raíz**. El workflow de validación no publica. Probar en una rama antes de integrar en `main` y `gh-pages`; nunca volver al constructor de payloads antiguo. Las versiones previas permanecen en el historial.
 
-Los antiguos archivos `payload/*` y `v2.*` se retiran de la nueva base; continúan disponibles en el historial anterior. No volver a desplegar el antiguo constructor de payloads.
-
-## Pruebas
+## Validación
 
 ```bash
-node --check demo-store.js
 node --check enterprise.js
+node --check experience.js
 node --check sw.js
 node --test tests/model.test.cjs
 python -m pip install -r requirements-test.txt
 python -m playwright install --with-deps chromium
 python tests/browser_smoke.py
+python tests/experience_smoke.py
 ```
 
-El workflow `Validate NEXUS ONE Enterprise` ejecuta estas pruebas sobre HTTP en GitHub Actions y adjunta evidencia en `test-results/`. La suite de navegador comprueba módulos, filtros, procesos, descargas, ocho anchos de pantalla, diálogo y teclado, persistencia real y recarga sin conexión. Los resultados exactos pertenecen a cada ejecución; una marca verde de despliegue no sustituye estas pruebas.
+GitHub Actions ejecuta las suites sobre HTTP con almacenamiento y service worker reales. Adjunta reportes, capturas y el código de la ejecución. Las comprobaciones incluyen reglas monetarias, duplicados, flujos, exportación, navegación, teclado, dos temas, tamaños de pantalla, persistencia y recarga sin conexión.
 
-`NEXUS_INLINE_TEST=1` habilita un modo explícito de renderizado sin red para laboratorios restringidos. Utiliza un doble de almacenamiento y **omite** HTTP, persistencia real y service worker. No debe utilizarse como evidencia de funcionamiento PWA.
-
-## Límites
-
-Es una demo comercial, no una plataforma productiva ni una prueba de rendimiento. El selector de perfil no es autenticación y la bitácora local no es inmutable. Seguridad en servidor, APIs, reversos externos, conciliación bancaria, alta disponibilidad, cumplimiento normativo y carga real requieren una implementación productiva y validación específica. No se afirma certificación de accesibilidad ni validación en todos los navegadores.
-
-No incluye tienda pública, checkout, WhatsApp Business, aplicaciones nativas Android/iOS ni información confidencial. No introducir datos reales en el escenario.
+`NEXUS_INLINE_TEST=1` es un modo de renderizado para laboratorios restringidos: usa un doble de almacenamiento y omite HTTP/PWA. No equivale a una prueba de funcionamiento sin conexión. Los conteos y resultados válidos están en los reportes de cada ejecución, no en una promesa de este README.

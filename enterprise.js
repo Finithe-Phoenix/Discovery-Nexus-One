@@ -219,6 +219,7 @@
   }
   function auditView() {return `${notice('Esta bitácora registra acciones del escenario en este navegador. No es un registro productivo inmutable ni sustituye controles de autenticación o auditoría en servidor.',true)}<section class="panel section-gap">${tableToolbar('audit')}<div id="table-content">${tableContent('audit')}</div></section>`;}
   function settingsView() {return `<div class="settings-grid"><section class="panel panel-pad"><h2>El alcance, sin ambigüedades</h2><div class="scope-list">${[['Consola multioperador','Inventario, ventas, saldo, comisiones y red.','Demo funcional'],['Tres perfiles empresariales','Dirección, distribución y punto de venta.','Vistas simuladas'],['PWA empresarial','Instalación según navegador y dispositivo.','Disponible'],['APIs de operadores','No se envían solicitudes ni activaciones reales.','Sin conexión'],['Tienda pública y checkout','Fuera del alcance de esta plataforma interna.','No incluidos'],['WhatsApp Business y apps nativas','No forman parte de esta fase.','No incluidos']].map(([a,b,c])=>`<div class="scope-row"><div><strong>${a}</strong><p>${b}</p></div>${tag(c)}</div>`).join('')}</div></section><section class="panel panel-pad"><h2>Tu espacio de demostración</h2><div class="scope-list"><div class="scope-row"><div><strong>Apariencia</strong><p>Tema claro u oscuro, guardado en este dispositivo.</p></div>${button('Cambiar','theme','sun')}</div><div class="scope-row"><div><strong>Instalar aplicación</strong><p>No requiere App Store ni Google Play.</p></div>${button('Instalar','install','download')}</div><div class="scope-row"><div><strong>Persistencia local</strong><p>${(S.storageBytes()/1024/1024).toFixed(2)} MB de datos ficticios. No se sincronizan entre equipos.</p></div>${tag('Solo navegador','good')}</div><div class="scope-row"><div><strong>Restablecer escenario</strong><p>Elimina ventas, abonos y cambios de esta demo local.</p></div>${button('Restablecer','reset','refresh','danger')}</div></div><div class="section-gap">${notice('La selección de perfil ilustra responsabilidades; no autentica usuarios. Seguridad real, permisos en servidor, integraciones y pruebas de carga pertenecen a la implementación productiva.',true)}</div></section></div>`;}
+  function timelineContent(history) { return history.map(h=>`<div class="timeline-item"><strong>${esc(h.title)}</strong><p>${esc(h.detail)}</p><small>${date(h.at)}</small></div>`).join(''); }
   const views={overview,operators:operatorsView,inventory:inventoryView,network:networkView,sales:salesView,wallet:walletView,commissions:commissionsView,approvals:approvalsView,reports:reportsView,audit:auditView,settings:settingsView};
   function render() {
     if(!permitted().includes(state.page))state.page='overview';
@@ -239,6 +240,7 @@
     $('#view').innerHTML=views[state.page]();$('#view').className='fade-in';
     $('#mobile-nav').innerHTML=[['overview','Inicio'],['inventory','Inventario'],['sales','Ventas'],['wallet','Saldo'],['menu','Más']].map(([p,label])=>`<button data-action="${p==='menu'?'menu':'go'}" data-page="${p}" class="${state.page===p?'active':''}" ${state.page===p?'aria-current="page"':''}>${icon(p==='menu'?'menu':PAGES[p][1])}<span>${label}</span></button>`).join('');
     hydrate();renderTour();
+    document.dispatchEvent(new CustomEvent("nexus:view"));
   }
   function showRoles() {
     modal('Tres perspectivas. Una operación.','Cambia el perfil para explorar responsabilidades y alcance.',
@@ -376,7 +378,7 @@
     briefing,print:()=>window.print(),export:()=>exportData(['inventory','audit','commissions'].includes(state.page)?state.page:'sales'),
     'export-sales':()=>exportData('sales'),'export-inventory':()=>exportData('inventory'),'export-audit':()=>exportData('audit'),'export-commissions':()=>exportData('commissions'),
     paginate:b=>{state.pageIndex+=Number(b.dataset.direction);$('#table-content').innerHTML=tableContent(state.page);},
-    guide:startTour,'tour-next':()=>tourStep(1),'tour-prev':()=>tourStep(-1),'tour-end':endTour,install,
+    guide:()=>window.NexusExperience ? window.NexusExperience.open() : startTour(),'tour-next':()=>tourStep(1),'tour-prev':()=>tourStep(-1),'tour-end':endTour,install,
     reset:()=>modal('Restablecer esta demo local','Esta acción no modifica GitHub ni otros dispositivos.',`${notice('Se borrarán las operaciones, solicitudes, asignaciones y cortes que hayas generado aquí. Se conservará el tema visual y se restaurarán los datos ficticios iniciales.')}<div class="dialog-foot">${button('Cancelar','close','close')}${button('Restablecer escenario','confirm-reset','refresh','primary')}</div>`),
     'confirm-reset':()=>{S.reset();state.role='director';state.operator='all';state.period=30;closeDialog();go('overview');notify('Escenario inicial restaurado en este navegador.');}
   };
@@ -411,6 +413,7 @@
     if(e.target.id==='command-query')$('#command-results').innerHTML=searchResults(e.target.value);
   });
   document.addEventListener('keydown',e=>{
+    if(document.querySelector('#experience[open]'))return;
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();searchDialog();}
     if(e.key==='Escape'&&!$('#dialog').open){if(state.guide>=0)endTour();$('#sidebar').classList.remove('open');$('#scrim').classList.remove('open');$('.menu-toggle').setAttribute('aria-expanded','false');}
     if(state.guide>=0&&!$('#dialog').open&&!['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)){if(e.key==='ArrowRight'){e.preventDefault();tourStep(1);}if(e.key==='ArrowLeft'){e.preventDefault();tourStep(-1);}}
@@ -422,5 +425,8 @@
   const connection=()=>{$('#connection-status').textContent=navigator.onLine?'Escenario disponible':'Sin conexión · demo local';};
   window.addEventListener('online',connection);window.addEventListener('offline',connection);
   if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>notify('El navegador no habilitó el modo sin conexión. La demo sigue disponible en línea.'));
+  // Explicit presentation bridge; the extension never reaches into private UI state.
+  window.NexusApp = Object.freeze({context:()=>({...filter(),page:state.page}),navigate:go,
+    render,present:startTour,showBriefing:briefing,setRole:changeRole});
   go(location.hash.slice(1)||'overview');connection();
 })();
