@@ -55,6 +55,28 @@ def close(page):
     if page.locator('#dialog').evaluate('(d)=>d.open'):
         page.locator('#dialog [data-action="close"]').first.click()
 
+def dashboard_contract(page, label):
+    result = page.evaluate('''() => {
+        const ctx=NexusApp.context(),s=NexusStore,m=s.metrics(ctx),f=s.finance(ctx.role);
+        const fmt=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',minimumFractionDigits:2,maximumFractionDigits:2}).format(n/100);
+        const rows=[...document.querySelectorAll('.operator-performance')];
+        const allowed=s.allowedOperators(ctx.role).filter(o=>ctx.operator==='all'||o.id===ctx.operator);
+        const visible=s.rolePoints(ctx.role).filter(p=>ctx.operator==='all'||p.operators.includes(ctx.operator));
+        return {
+            sum:rows.reduce((total,r)=>total+Number(r.dataset.revenue),0)===m.revenue,
+            operators:rows.length===allowed.length && rows.every(r=>{
+                const amount=m.confirmed.filter(t=>t.operator===r.dataset.operator).reduce((a,t)=>a+t.amount,0);
+                return allowed.some(o=>o.id===r.dataset.operator) && Number(r.dataset.revenue)===amount && r.querySelector('.performance-value').textContent===fmt(amount);
+            }),
+            capacity:document.querySelector('[data-capacity="balance"]').textContent===fmt(f.balance) && document.querySelector('[data-capacity="credit"]').textContent===fmt(Math.max(0,f.creditLimit-f.creditUsed)),
+            network:Number(document.querySelector('.network-numbers strong').textContent)===visible.length,
+            scope:document.querySelector('.operations-capacity').textContent.includes('compartido entre operadores') && document.querySelector('.priority-list').textContent.includes('sin filtro de operador o periodo'),
+            order:document.querySelector('#view').firstElementChild.classList.contains('kpi-grid') && document.querySelector('.dashboard-grid').children[1].classList.contains('priorities-panel')
+        };
+    }''')
+    for name, valid in result.items():
+        check(f'operational dashboard {label}: {name}', valid)
+
 def run():
     server = None
     url = os.environ.get('NEXUS_BASE_URL')
@@ -75,6 +97,19 @@ def run():
             load(page, url)
             baseline = metric(page)
             check('dashboard renders deterministic ledger totals', baseline['count'] > 3000)
+            ledger_before = page.evaluate('localStorage.getItem("nexus-enterprise-demo-v3")')
+            for profile,operator,period in [('director','all','30'),('director','att','7'),('director','bait','1'),('distributor','all','30'),('distributor','movistar','7'),('pos','all','30'),('pos','att','1')]:
+                role(page, profile)
+                page.locator(f'#operator-tabs [data-operator="{operator}"]').click()
+                page.locator('#period').select_option(period)
+                dashboard_contract(page, f'{profile}/{operator}/{period}')
+            role(page, 'director')
+            page.locator('#period').select_option('7')
+            page.locator('.operator-performance[data-operator="att"]').click()
+            check('operator comparison drills down without losing period or role',page.evaluate('JSON.stringify(NexusApp.context())')=='{"role":"director","operator":"att","period":7,"page":"overview"}')
+            page.locator('#operator-tabs [data-operator="all"]').click()
+            page.locator('#period').select_option('30')
+            check('dashboard exploration never mutates the ledger',page.evaluate('localStorage.getItem("nexus-enterprise-demo-v3")')==ledger_before)
             page.screenshot(path=str(OUT / 'desktop-overview.png'), full_page=True)
             page.screenshot(path=str(OUT / 'desktop-viewport.png'))
             for target in ['operators','inventory','network','sales','wallet','commissions','approvals','reports','audit','settings','overview']:
@@ -199,6 +234,18 @@ def run():
                     check('mobile inventory has no horizontal page overflow',page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'))
                     page.screenshot(path=str(OUT/'mobile-inventory.png'))
                     page.locator('#mobile-nav [data-page="overview"]').click()
+            page.set_viewport_size({'width':1440,'height':1000})
+            for theme in ['light','dark']:
+                page.evaluate('(theme)=>document.documentElement.dataset.theme=theme',theme)
+                for width in [320,390,768,1024]:
+                    page.set_viewport_size({'width':width,'height':900})
+                    for target in ['overview','inventory','sales','wallet','commissions','approvals','reports','settings']:
+                        page.evaluate('(target)=>NexusApp.navigate(target)',target)
+                        check(f'working surface fits {theme}/{width}/{target}',page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'))
+                    page.evaluate('NexusApp.navigate("overview")')
+                    check(f'working type remains readable {theme}/{width}',page.locator('#view .kpi-head,#view .kpi-foot,#view .priority-text p,#view .performance-detail').evaluate_all('(els)=>els.every(el=>parseFloat(getComputedStyle(el).fontSize)>=12)'))
+                    check(f'operator filters retain touch targets {theme}/{width}',page.locator('#operator-tabs button').evaluate_all('(els)=>els.every(el=>el.getBoundingClientRect().height>=42)'))
+            page.evaluate('document.documentElement.dataset.theme="light"')
             page.set_viewport_size({'width':1440,'height':1000})
             page.locator('#heading-actions [data-action="briefing"]').click()
             check('executive report opens with scope and synthetic-data warning','datos sintéticos' in page.locator('#dialog').inner_text())

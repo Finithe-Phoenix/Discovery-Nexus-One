@@ -1,10 +1,18 @@
-# NEXUS ONE · Executive Readiness v7
+# NEXUS ONE · Operational Experience v8
 
 **Una plataforma para explorar la operación. Una historia para explicar su valor.**
 
 Demo: https://finithe-phoenix.github.io/Discovery-Nexus-One/
 
 NEXUS ONE es una demostración interna multioperador de SIM, eSIM, inventario, red comercial, monedero, crédito, ventas, comisiones y trazabilidad. Los datos, precios, productos y operaciones son ficticios. No se contacta a operadores, se activan líneas, se reciben depósitos ni se entrega una eSIM real.
+
+## Un tablero para trabajar
+
+Los indicadores abren el Centro de control. La evolución de ventas y las prioridades operativas comparten la primera fila de trabajo; después aparecen el resultado por operador y la red habilitada. En móvil, el orden de lectura es el mismo. La ruta de presentación y evaluación sigue disponible debajo de los indicadores para Dirección.
+
+Cada operador muestra importe exacto, participación y número de operaciones confirmadas, con acceso a su universo sin perder perfil ni periodo. El monedero del perfil muestra saldo y crédito disponibles, separados de las solicitudes aún no acreditadas. Se explicita qué depende del periodo, qué es inventario al corte y qué saldo se comparte entre operadores. La red del tablero respeta también la habilitación del operador seleccionado.
+
+Textos, tablas, formularios y filtros usan una escala más legible; los filtros de operador se desplazan en móvil sin comprimir las etiquetas. Se conservan los controles de teclado, los temas y las acciones existentes. No cambia el modelo de transacciones ni se añade un backend.
 
 ## Una ruta ejecutiva, dos momentos
 
@@ -67,7 +75,7 @@ Abrir http://localhost:8000/. PWA y caché requieren HTTPS o localhost. La simul
 |---|---|
 | `demo-store.js` | Modelo y reglas de las operaciones; sin cambios en v5 |
 | `enterprise.js` | Consola y puente explícito `NexusApp` |
-| `enterprise.css` / `premium.css` | Base y lenguaje visual v4 |
+| `enterprise.css` / `premium.css` | Base, lenguaje visual y superficies operativas v8 |
 | `experience.js` / `experience.css` | Historia, interacciones y gráfico comparativo v5 |
 | `decision-core.js` / `decision.js` / `decision.css` | Evaluación v6 y ruta ejecutiva v7 |
 | `index.html`, `sw.js`, `manifest.webmanifest` | Entrada, caché e instalación |
@@ -90,5 +98,7 @@ python tests/decision_smoke.py
 ```
 
 GitHub Actions ejecuta las suites sobre HTTP con almacenamiento y service worker reales. Adjunta reportes, capturas y el código de la ejecución. Las comprobaciones incluyen reglas monetarias, duplicados, flujos, exportación, navegación, teclado, dos temas, tamaños de pantalla, persistencia y recarga sin conexión.
+
+La regresión v8 contrasta el tablero contra el modelo en siete combinaciones de perfil, operador y periodo: importes por operador, suma consolidada, monedero compartido y red habilitada. Comprueba que explorar no modifica el libro de operaciones y que el acceso a un universo conserva el contexto. Amplía la revisión de desbordamiento a ocho superficies de trabajo, cuatro anchuras y dos temas, además de mínimos de tamaño de texto y filtros táctiles. Son comprobaciones automatizadas específicas, no una certificación de accesibilidad.
 
 `NEXUS_INLINE_TEST=1` es un modo de renderizado para laboratorios restringidos: usa un doble de almacenamiento y omite HTTP/PWA. No equivale a una prueba de funcionamiento sin conexión. Los conteos y resultados válidos están en los reportes de cada ejecución, no en una promesa de este README.

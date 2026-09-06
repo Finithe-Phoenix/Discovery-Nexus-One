@@ -141,7 +141,7 @@
       const evaluation=evidence.stale?'Revisión por reiniciar':review.started?`${observed} de 5 evidencias`:'Evaluación disponible';
       const band=document.createElement('section');band.id='decision-band';band.className='decision-band';
       band.innerHTML=`<div class="decision-band-copy"><span>RUTA EJECUTIVA · ${evaluation}</span><strong>Demuestra la operación. Comprueba la evidencia. Define el siguiente paso.</strong><small>Seis capítulos guiados y una evaluación basada en eventos de esta sesión.</small></div><div class="decision-band-actions"><button class="decision-band-story" data-action="guide" aria-label="Presentar la historia ejecutiva de seis capítulos">${icon('arrow')}<span><small>01</small> Presentar historia</span></button><button class="decision-band-evaluate" data-decision="open" data-tab="${review.started&&!evidence.stale?'proof':'priority'}" aria-label="Abrir evaluación de negocio"><span><small>02</small> Evaluar solución</span>${icon('arrow')}</button></div>`;
-      $('#view > .kpi-grid')?.before(band);
+      $('#view > .kpi-grid')?.after(band);
     }
     $('#decision-coach')?.remove();
     if(coach&&director&&review.started){
