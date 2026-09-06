@@ -2,9 +2,9 @@
 'use strict';
 const SCOPE = new URL(self.registration.scope);
 const PREFIX = 'nexus-enterprise-' + SCOPE.pathname;
-const CACHE = PREFIX + '-v5.0.0';
+const CACHE = PREFIX + '-v6.0.0';
 const SHELL = new URL('./index.html', SCOPE).href;
-const ASSETS = ['./', './index.html', './enterprise.css?v=3.0.0', './premium.css?v=4.0.0', './demo-store.js?v=5.0.0', './enterprise.js?v=5.0.0', './experience.css?v=5.0.0', './experience.js?v=5.0.0', './manifest.webmanifest', './nexus-icon.svg', './icon-192.png', './icon-512.png'];
+const ASSETS = ['./', './index.html', './enterprise.css?v=3.0.0', './premium.css?v=4.0.0', './demo-store.js?v=5.0.0', './enterprise.js?v=6.0.0', './experience.css?v=5.0.0', './experience.js?v=6.0.0', './decision.css?v=6.0.0', './decision-core.js?v=6.0.0', './decision.js?v=6.0.0', './manifest.webmanifest', './nexus-icon.svg', './icon-192.png', './icon-512.png'];
 const ALLOWED = new Set(ASSETS.map(p => new URL(p, SCOPE).href));
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())));
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith(PREFIX) && key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())));

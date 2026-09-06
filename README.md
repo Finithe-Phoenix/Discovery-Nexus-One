@@ -1,10 +1,18 @@
-# NEXUS ONE · Executive Experience v5
+# NEXUS ONE · Business Evaluation v6
 
 **Una plataforma para explorar la operación. Una historia para explicar su valor.**
 
 Demo: https://finithe-phoenix.github.io/Discovery-Nexus-One/
 
 NEXUS ONE es una demostración interna multioperador de SIM, eSIM, inventario, red comercial, monedero, crédito, ventas, comisiones y trazabilidad. Los datos, precios, productos y operaciones son ficticios. No se contacta a operadores, se activan líneas, se reciben depósitos ni se entrega una eSIM real.
+
+## Evaluar el valor, no solo recorrer pantallas
+
+**Evaluar** abre un espacio para Dirección: prioridad de negocio, cinco criterios de evidencia nueva, hipótesis de capacidad operativa y siguiente paso propuesto. El historial precargado no se cuenta como una prueba realizada en la evaluación. Una guía abre los procesos existentes; no crea operaciones automáticamente.
+
+La calculadora comienza vacía y estima horas con supuestos explícitos; no promete ahorros monetarios. El resumen exportado es HTML local, imprimible, sin scripts ni envíos. No contiene la cotización privada ni constituye aceptación comercial. [Guía completa de evaluación](docs/BUSINESS_EVALUATION.md).
+
+Los accesos del tablero a rechazos e inventario en tránsito abren ahora los filtros correspondientes, y cada evidencia permite consultar su evento exacto.
 
 ## Presentar
 
@@ -55,6 +63,7 @@ Abrir http://localhost:8000/. PWA y caché requieren HTTPS o localhost. La simul
 | `enterprise.js` | Consola y puente explícito `NexusApp` |
 | `enterprise.css` / `premium.css` | Base y lenguaje visual v4 |
 | `experience.js` / `experience.css` | Historia, interacciones y gráfico comparativo v5 |
+| `decision-core.js` / `decision.js` / `decision.css` | Evaluación, supuestos y resumen local v6 |
 | `index.html`, `sw.js`, `manifest.webmanifest` | Entrada, caché e instalación |
 | `tests/` | Modelo, regresión de consola y aceptación de historia |
 
@@ -66,11 +75,12 @@ La publicación usa **gh-pages / raíz**. El workflow de validación no publica.
 node --check enterprise.js
 node --check experience.js
 node --check sw.js
-node --test tests/model.test.cjs
+node --test tests/model.test.cjs tests/decision.test.cjs
 python -m pip install -r requirements-test.txt
 python -m playwright install --with-deps chromium
 python tests/browser_smoke.py
 python tests/experience_smoke.py
+python tests/decision_smoke.py
 ```
 
 GitHub Actions ejecuta las suites sobre HTTP con almacenamiento y service worker reales. Adjunta reportes, capturas y el código de la ejecución. Las comprobaciones incluyen reglas monetarias, duplicados, flujos, exportación, navegación, teclado, dos temas, tamaños de pantalla, persistencia y recarga sin conexión.

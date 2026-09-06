@@ -1,0 +1,150 @@
+"""Buyer evaluation acceptance. Runs over HTTP in CI; inline mode omits PWA."""
+import json, os, traceback
+from functools import partial
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+from threading import Thread
+from playwright.sync_api import sync_playwright
+from browser_smoke import ROOT, OUT, INLINE, load
+CHECKS=[]
+ERRORS=[]
+
+def check(name,condition=True):
+    if not condition:raise AssertionError(name)
+    CHECKS.append(name);print('PASS',name,flush=True)
+
+def main():
+    server=None;url=os.environ.get('NEXUS_BASE_URL')
+    if not INLINE and not url:
+        server=ThreadingHTTPServer(('127.0.0.1',0),partial(SimpleHTTPRequestHandler,directory=str(ROOT)))
+        Thread(target=server.serve_forever,daemon=True).start();url=f'http://127.0.0.1:{server.server_port}/'
+    with sync_playwright() as p:
+        options={'headless':True}
+        if os.environ.get('CHROMIUM_PATH'):options['executable_path']=os.environ['CHROMIUM_PATH']
+        browser=p.chromium.launch(**options);ctx=browser.new_context(viewport={'width':1440,'height':1000},accept_downloads=True)
+        page=ctx.new_page();page.set_default_timeout(8000);page.on('pageerror',lambda e:ERRORS.append(str(e)))
+        tab=lambda id:page.locator(f'.dc-nav [data-tab="{id}"]').click()
+        close=lambda:page.locator('#decision [data-decision="close"]').click()
+        snapshot=lambda:page.evaluate('''()=>{const s=NexusStore,f={role:'director',operator:'all',period:30};return [s.metrics(f).revenue,s.wallet('PDV-001').balance,s.sales(f).length,s.logs(f).length,s.assets(f).length]}''')
+        try:
+            load(page,url)
+            before=snapshot()
+            page.locator('#view .priority:nth-child(2) [data-action="go"]').click()
+            check('rejection alert opens the rejected operations filter',page.locator('#status-filter').input_value()=='Rechazada')
+            check('rejection table only contains rejected records',all('Rechazada' in s for s in page.locator('#table-content td[data-label="Estado"]').all_text_contents()))
+            page.locator('#nav [data-page="overview"]').click()
+            page.locator('#view .priority:nth-child(3) [data-action="go"]').click()
+            check('inventory alert opens transit records',page.locator('#status-filter').input_value()=='En tránsito')
+            page.locator('#nav [data-page="overview"]').click()
+            page.locator('.decision-launch').click()
+            check('evaluation opens in native modal',page.locator('#decision').evaluate('(d)=>d.open&&d.matches(":modal")'))
+            check('focus enters title',page.evaluate('document.activeElement.id')=='dc-title')
+            for _ in range(16):
+                page.keyboard.press('Tab');assert page.evaluate('document.querySelector("#decision").contains(document.activeElement)')
+            check('focus stays inside evaluation')
+            page.keyboard.press('Control+k')
+            check('command palette cannot open beneath modal',not page.locator('#dialog').evaluate('(d)=>d.open'))
+            for theme in ['light','dark']:
+                page.evaluate('(t)=>document.documentElement.dataset.theme=t',theme)
+                for width,height in [(320,740),(390,844),(768,1024),(1024,768),(1440,1000),(1920,1080)]:
+                    page.set_viewport_size({'width':width,'height':height})
+                    for name in ['priority','proof','impact','next']:
+                        tab(name)
+                        ok=page.evaluate('''()=>{const d=document.querySelector('#decision'),m=d.querySelector('.dc-main'),r=d.getBoundingClientRect();return d.scrollWidth<=d.clientWidth+1&&m.scrollWidth<=m.clientWidth+1&&r.left>=-1&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1}''')
+                        check(f'{name} fits {width}px / {theme}',ok)
+            check('browsing evaluation never creates operations',snapshot()==before)
+            page.set_viewport_size({'width':1440,'height':1000});page.evaluate('document.documentElement.dataset.theme="light"');tab('priority')
+            page.locator('[data-decision="priority"][data-id="balance"]').click()
+            check('priority is explicit and persisted',page.evaluate('JSON.parse(localStorage.getItem("nexus-decision-v1")).priority')=='balance')
+            page.screenshot(path=str(OUT/'v6-evaluation-desktop.png'),animations='disabled')
+            tab('proof')
+            check('historical operations do not satisfy session evidence',page.locator('.dc-proof.is-observed').count()==0)
+            page.locator('[data-decision="start"]').click()
+            check('start snapshots evidence without changing model',snapshot()==before)
+            check('all evidence starts pending',page.locator('.dc-proof.is-observed').count()==0)
+            page.locator('[data-decision="try"][data-id="sale"]').click()
+            check('evidence task opens real sale form',page.locator('#sale-form').is_visible())
+            page.locator('#sale-form [type="submit"]').click();page.locator('[data-action="confirm-sale"]').click()
+            check('task confirmation changes real demo ledger',snapshot()[0]==before[0]+19900)
+            page.locator('#dialog [data-action="close"]').first.click();page.locator('[data-decision="return-proof"]').click()
+            check('connected sale evidence detected automatically',page.locator('.dc-proof.is-observed').count()==1)
+            page.locator('[data-decision="event"][data-id="sale"]').click()
+            check('evidence link opens the exact event',page.locator('#page-title').inner_text()=='Bitácora de operaciones' and page.locator('#table-search').input_value().startswith('EV-') and page.locator('#table-content tbody tr').count()==1)
+            page.locator('.decision-launch').click();tab('proof')
+            page.locator('[data-decision="try"][data-id="reject"]').click()
+            check('rejection task preselects simulator rejection',page.locator('#sale-outcome').input_value()=='reject')
+            unchanged=snapshot();page.locator('#sale-form [type="submit"]').click();page.locator('[data-action="confirm-sale"]').click()
+            check('rejection task has no wallet or revenue effect',snapshot()[:2]==unchanged[:2])
+            page.locator('#dialog [data-action="close"]').first.click();page.locator('[data-decision="return-proof"]').click()
+            check('rejection evidence detected',page.locator('.dc-proof.is-observed').count()==2)
+            page.locator('[data-decision="try"][data-id="topup"]').click()
+            page.locator('#topup-form [name="reference"]').fill('DEMO-DECISION-TEST-1')
+            page.locator('#topup-form [type="submit"]').click()
+            page.locator('#decision-coach [data-decision="approvals"]').click()
+            req=page.evaluate("NexusStore.requests({role:'director'}).find(r=>r.reference==='DEMO-DECISION-TEST-1').id")
+            page.locator(f'[data-action="review-topup"][data-id="{req}"][data-approve="true"]').click()
+            page.locator('[data-action="resolve-topup"]').click();page.locator('[data-decision="return-proof"]').click()
+            check('request and approval produce linked evidence',page.locator('.dc-proof.is-observed').count()==3)
+            page.locator('[data-decision="try"][data-id="cut"]').click();page.locator('[data-action="confirm-settle"]').click()
+            page.locator('[data-decision="return-proof"]').click()
+            check('cut includes a session sale',page.locator('.dc-proof.is-observed').count()==4)
+            page.screenshot(path=str(OUT/'v6-evidence-desktop.png'),animations='disabled')
+            tab('impact')
+            check('capacity inputs start blank and no fabricated saving appears',page.locator('.dc-impact-empty').is_visible() and all(x=='' for x in page.locator('#dc-impact-form input').evaluate_all('(els)=>els.map(e=>e.value)')))
+            for name,value in dict(volume='100',days='22',before='5',after='2',adoption='80').items():page.locator('#dc-'+name).fill(value)
+            page.locator('#dc-impact-form [type="submit"]').click()
+            check('capacity result is 88 hours from explicit inputs','88' in page.locator('.dc-impact-kpi strong').inner_text())
+            check('formula and nonmonetary caveat are visible','100 operaciones/día' in page.locator('.dc-formula').inner_text() and 'no ahorro monetario' in page.locator('#dc-impact-result').inner_text())
+            page.screenshot(path=str(OUT/'v6-capacity-desktop.png'),animations='disabled')
+            page.locator('#dc-after').fill('6')
+            check('editing inputs invalidates old estimate',page.locator('.dc-impact-empty').is_visible())
+            page.locator('#dc-impact-form [type="submit"]').click()
+            check('slower target is rejected','no puede superar' in page.locator('#dc-impact-error').inner_text())
+            page.locator('#dc-after').fill('2');page.locator('#dc-impact-form [type="submit"]').click()
+            tab('next')
+            check('fit and next step never auto-approve',page.locator('#dc-verdict').input_value()=='pending' and page.locator('#dc-next').input_value()=='pending')
+            page.locator('#dc-verdict').select_option('gap');page.locator('#dc-next').select_option('technical')
+            page.locator('.dc-faq summary').first.click()
+            check('production dependencies are stated','conectores ilimitados' in page.locator('.dc-faq').inner_text())
+            page.screenshot(path=str(OUT/'v6-next-step-desktop.png'),animations='disabled')
+            if INLINE:
+                page.evaluate("() => {const old=URL.createObjectURL;URL.createObjectURL=(blob)=>{window.__packet=blob;return old(blob)}}")
+                page.locator('[data-decision="download"]').click();html=page.evaluate('window.__packet.text()')
+                (OUT/'NEXUS_ONE_Resumen_Evaluacion_ejemplo.html').write_text(html)
+            else:
+                with page.expect_download() as info:page.locator('[data-decision="download"]').click()
+                target=OUT/'NEXUS_ONE_Resumen_Evaluacion_ejemplo.html';info.value.save_as(target);html=target.read_text()
+            check('packet includes evidence inputs pending gaps and next step',all(s in html for s in ['88','Requiere adecuaciones','Solicitar revisión técnica','Pendiente de demostrar','EV-']))
+            check('packet contains no active scripts or private quotation',all(s not in html for s in ['<script','425,000','425000','695,000']))
+            persisted=page.evaluate('JSON.parse(localStorage.getItem("nexus-decision-v1"))')
+            check('only local explicit decisions saved',persisted['next']=='technical' and persisted['verdict']=='gap')
+            page.set_viewport_size({'width':390,'height':844});tab('priority')
+            page.screenshot(path=str(OUT/'v6-evaluation-mobile.png'),animations='disabled')
+            tab('next');page.screenshot(path=str(OUT/'v6-next-step-mobile.png'),animations='disabled')
+            page.keyboard.press('Escape')
+            page.wait_for_function('!document.querySelector("#decision").open && document.activeElement.matches(".decision-launch,[data-decision=return-proof]")')
+            check('Escape exits evaluation and returns focus to its invoker')
+            page.set_viewport_size({'width':1440,'height':1000})
+            page.locator('.presentation-launch').click();page.locator('.exp-chapters [data-index="5"]').click();page.locator('[data-exp="evaluate"]').click()
+            check('story has an actionable decision handoff',page.locator('#decision').evaluate('(d)=>d.open') and not page.locator('#experience').evaluate('(d)=>d.open'))
+            close()
+            if not INLINE:
+                page.reload(wait_until='networkidle');page.locator('.decision-launch').click();tab('next')
+                check('review persists across real reload',page.locator('#dc-next').input_value()=='technical' and page.locator('#dc-verdict').input_value()=='gap')
+                close();page.evaluate('navigator.serviceWorker.ready');page.wait_for_function('!!navigator.serviceWorker.controller')
+                ctx.set_offline(True);page.reload(wait_until='networkidle');page.locator('.decision-launch').click();tab('impact')
+                check('evaluation and saved estimate work offline','88' in page.locator('.dc-impact-kpi strong').inner_text())
+                close();ctx.set_offline(False)
+            page.locator('#nav [data-page="settings"]').click();page.locator('[data-action="reset"]').click();page.locator('[data-action="confirm-reset"]').click()
+            page.locator('.decision-launch').click();tab('proof')
+            check('explicit scenario reset clears evidence and buyer review',page.locator('.dc-proof.is-observed').count()==0 and page.locator('[data-decision="start"]').count()==1)
+            close();page.locator('.top-actions [data-action="roles"]').click();page.locator('[data-action="set-role"][data-role="pos"]').click()
+            check('matrix evaluation hidden in point-of-sale view',not page.locator('.decision-launch').is_visible() and page.locator('#decision-band').count()==0)
+            check('no uncaught JavaScript errors',not ERRORS)
+        except Exception:
+            page.screenshot(path=str(OUT/'v6-failure.png'),animations='disabled');traceback.print_exc();raise
+        finally:
+            (OUT/'decision-report.json').write_text(json.dumps({'passed':len(CHECKS),'checks':CHECKS,'mode':'inline / HTTP and PWA omitted' if INLINE else 'HTTP / real browser storage and service worker','skipped':['reload and offline'] if INLINE else [],'page_errors':ERRORS},ensure_ascii=False,indent=2))
+            browser.close()
+            if server:server.shutdown()
+    print(json.dumps({'passed':len(CHECKS),'errors':ERRORS}),flush=True)
+if __name__=='__main__':main()

@@ -124,14 +124,14 @@
     </section>
     <section class="panel">${panelHeader('Prioridades operativas','La atención donde realmente hace falta.',tag('Escenario'))}<div class="priority-list">
       ${priority('Solicitudes de monedero',`${m.pending} pendientes de autorización. Sin impacto en saldo hasta aprobarse.`,state.role==='director'?'approvals':'wallet','wallet','amber')}
-      ${priority(rejected?'Operaciones por revisar':'Operaciones bajo control',`${num(rejected)} intentos rechazados en el periodo. Sin cargos ni comisión.`, 'sales','shield',rejected?'amber':'')}
-      ${priority('Continuidad de inventario',`${num(allAssets.filter(a=>a.status==='En tránsito').length)} unidades en tránsito y ${num(m.stock)} disponibles.`, 'inventory','sim','')}
+      ${priority(rejected?'Operaciones por revisar':'Operaciones bajo control',`${num(rejected)} intentos rechazados en el periodo. Sin cargos ni comisión.`, 'sales','shield',rejected?'amber':'','Rechazada')}
+      ${priority('Continuidad de inventario',`${num(allAssets.filter(a=>a.status==='En tránsito').length)} unidades en tránsito y ${num(m.stock)} disponibles.`, 'inventory','sim','','En tránsito')}
     </div></section>
     <section class="panel network-card">${panelHeader('Tu red, bajo control','Cobertura comercial del perfil seleccionado.',tag('Red de prueba'))}<div class="network-numbers"><div><strong>${points.length}</strong><span>Puntos de venta</span></div><div><strong>${new Set(points.map(p=>p.distributor)).size}</strong><span>Distribuidores</span></div></div><div class="region-bars">${regionSales.slice(0,4).map(r=>`<div class="region-row"><span>${r.region}</span><div class="region-track"><span style="width:${m.revenue?r.value/m.revenue*100:0}%"></span></div><strong>${m.revenue?Math.round(r.value/m.revenue*100):0}%</strong></div>`).join('')||'<p>Sin ventas en el periodo seleccionado.</p>'}</div>${button(state.role==='pos'?'Ver mis operaciones':'Explorar red comercial','go','arrow','',`data-page="${state.role==='pos'?'sales':'network'}"`)}</section>
     <section class="panel wide">${panelHeader('Actividad reciente','Operaciones del periodo y universo seleccionados.',button('Ver todas','go','arrow','link','data-page="sales"'))}<div class="section-gap">${salesTable(m.rows.slice(0,6),false)}</div></section>
     </div>`;
   }
-  function priority(title,text,page,glyph,kind) {return `<div class="priority"><div class="priority-icon ${kind}">${icon(glyph)}</div><div class="priority-text"><strong>${title}</strong><p>${text}</p></div><button data-action="go" data-page="${page}" aria-label="Abrir ${esc(PAGES[page][0])}">${icon('arrow')}</button></div>`;}
+  function priority(title,text,page,glyph,kind,status='all') {return `<div class="priority"><div class="priority-icon ${kind}">${icon(glyph)}</div><div class="priority-text"><strong>${title}</strong><p>${text}</p></div><button data-action="go" data-page="${page}" data-status="${esc(status)}" aria-label="Abrir ${esc(PAGES[page][0])}">${icon('arrow')}</button></div>`;}
   function chart(rows) {
     const data=Array.from({length:state.period},(_,i)=>{
       const end=S.ANCHOR-(state.period-1-i)*S.DAY;
@@ -362,7 +362,7 @@
     try{localStorage.setItem('nexus-theme-v3',next);}catch(_){notify('El tema se aplicó, pero el navegador no permitió guardarlo.');}
   }
   const actions={
-    go:b=>go(b.dataset.page),operator:b=>{if(b.dataset.operator!=='all'&&!S.ROLES[state.role].operators.includes(b.dataset.operator))return;state.operator=b.dataset.operator;state.pageIndex=1;render();},
+    go:b=>b.dataset.status?openFiltered(b.dataset.page,{status:b.dataset.status}):go(b.dataset.page),operator:b=>{if(b.dataset.operator!=='all'&&!S.ROLES[state.role].operators.includes(b.dataset.operator))return;state.operator=b.dataset.operator;state.pageIndex=1;render();},
     universe:b=>{state.operator=b.dataset.operator;go('overview');},roles:showRoles,'set-role':b=>changeRole(b.dataset.role),theme:toggleTheme,search:searchDialog,
     'command-go':b=>{closeDialog();go(b.dataset.page);},close:closeDialog,
     menu:()=>{const open=!$('#sidebar').classList.contains('open');$('#sidebar').classList.toggle('open',open);$('#scrim').classList.toggle('open',open);$('.menu-toggle').setAttribute('aria-expanded',String(open));if(open)$('#sidebar .nav-item.active')?.focus();},
@@ -380,7 +380,7 @@
     paginate:b=>{state.pageIndex+=Number(b.dataset.direction);$('#table-content').innerHTML=tableContent(state.page);},
     guide:()=>window.NexusExperience ? window.NexusExperience.open() : startTour(),'tour-next':()=>tourStep(1),'tour-prev':()=>tourStep(-1),'tour-end':endTour,install,
     reset:()=>modal('Restablecer esta demo local','Esta acción no modifica GitHub ni otros dispositivos.',`${notice('Se borrarán las operaciones, solicitudes, asignaciones y cortes que hayas generado aquí. Se conservará el tema visual y se restaurarán los datos ficticios iniciales.')}<div class="dialog-foot">${button('Cancelar','close','close')}${button('Restablecer escenario','confirm-reset','refresh','primary')}</div>`),
-    'confirm-reset':()=>{S.reset();state.role='director';state.operator='all';state.period=30;closeDialog();go('overview');notify('Escenario inicial restaurado en este navegador.');}
+    'confirm-reset':()=>{S.reset();document.dispatchEvent(new Event('nexus:reset'));state.role='director';state.operator='all';state.period=30;closeDialog();go('overview');notify('Escenario inicial restaurado en este navegador.');}
   };
   document.addEventListener('click',e=>{
     const b=e.target.closest('[data-action]');if(!b||b.disabled)return;
@@ -413,7 +413,7 @@
     if(e.target.id==='command-query')$('#command-results').innerHTML=searchResults(e.target.value);
   });
   document.addEventListener('keydown',e=>{
-    if(document.querySelector('#experience[open]'))return;
+    if(document.querySelector('#experience[open],#decision[open]'))return;
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();searchDialog();}
     if(e.key==='Escape'&&!$('#dialog').open){if(state.guide>=0)endTour();$('#sidebar').classList.remove('open');$('#scrim').classList.remove('open');$('.menu-toggle').setAttribute('aria-expanded','false');}
     if(state.guide>=0&&!$('#dialog').open&&!['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)){if(e.key==='ArrowRight'){e.preventDefault();tourStep(1);}if(e.key==='ArrowLeft'){e.preventDefault();tourStep(-1);}}
@@ -425,8 +425,16 @@
   const connection=()=>{$('#connection-status').textContent=navigator.onLine?'Escenario disponible':'Sin conexión · demo local';};
   window.addEventListener('online',connection);window.addEventListener('offline',connection);
   if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>notify('El navegador no habilitó el modo sin conexión. La demo sigue disponible en línea.'));
+  function openFiltered(page,options={}) {
+    go(page);
+    const allowed={sales:['all','Confirmada','Rechazada'],inventory:['all','Disponible','En tránsito','Vendida'],commissions:['all','Por liquidar','Incluida en corte'],audit:['all']};
+    if(!allowed[state.page])return;
+    state.status=allowed[state.page].includes(options.status)?options.status:'all';
+    state.query=typeof options.query==='string'?options.query.slice(0,100):'';
+    state.pageIndex=1;render();
+  }
   // Explicit presentation bridge; the extension never reaches into private UI state.
   window.NexusApp = Object.freeze({context:()=>({...filter(),page:state.page}),navigate:go,
-    render,present:startTour,showBriefing:briefing,setRole:changeRole});
+    render,openFiltered,present:startTour,showBriefing:briefing,setRole:changeRole});
   go(location.hash.slice(1)||'overview');connection();
 })();

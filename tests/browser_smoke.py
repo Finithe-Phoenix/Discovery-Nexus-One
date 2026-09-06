@@ -36,6 +36,8 @@ def load(page, url):
         page.add_script_tag(content=(ROOT / 'demo-store.js').read_text())
         page.add_script_tag(content=(ROOT / 'enterprise.js').read_text())
         page.add_script_tag(content=(ROOT / 'experience.js').read_text())
+        page.add_script_tag(content=(ROOT / 'decision-core.js').read_text())
+        page.add_script_tag(content=(ROOT / 'decision.js').read_text())
     page.wait_for_selector('#view .kpi')
     page.wait_for_timeout(100)
 

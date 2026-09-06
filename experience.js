@@ -111,7 +111,7 @@
     const refs=[model.sale?.id,model.request?.id].filter(Boolean);
     const logs=S.logs(F).filter(l=>refs.includes(l.reference));
     const m=S.metrics(F);
-    return `<div class="exp-proof"><div class="exp-surface-title"><span>CIERRE EJECUTIVO / 05 SEP 2026</span><span class="exp-status">Escenario local</span></div><div class="exp-proof-total"><small>Ventas confirmadas · últimos 30 días</small><strong>${mxn(m.revenue)}</strong><span>${num(m.count)} confirmaciones · ${mxn(m.commission,2)} de comisión</span></div><div class="exp-proof-list"><span class="exp-label">EVIDENCIA DE ESTE RECORRIDO</span>${logs.length?logs.map(l=>`<div>${icon('check')}<span><strong>${esc(l.action)}</strong><small>${esc(l.reference)} · ${esc(l.actor)}</small></span></div>`).join(''):'<p>Exploraste sin crear operaciones. Confirma una venta o solicita un abono para generar evidencia en esta sesión.</p>'}</div><div class="exp-inline-actions">${btn('Abrir informe ejecutivo','report','primary')}${btn('Ver bitácora','audit','quiet')}</div><p class="exp-small-note">PWA interna · sin tienda pública, WhatsApp Business ni apps nativas. Integraciones productivas fuera de la demostración.</p></div>`;
+    return `<div class="exp-proof"><div class="exp-surface-title"><span>CIERRE EJECUTIVO / 05 SEP 2026</span><span class="exp-status">Escenario local</span></div><div class="exp-proof-total"><small>Ventas confirmadas · últimos 30 días</small><strong>${mxn(m.revenue)}</strong><span>${num(m.count)} confirmaciones · ${mxn(m.commission,2)} de comisión</span></div><div class="exp-proof-list"><span class="exp-label">EVIDENCIA DE ESTE RECORRIDO</span>${logs.length?logs.map(l=>`<div>${icon('check')}<span><strong>${esc(l.action)}</strong><small>${esc(l.reference)} · ${esc(l.actor)}</small></span></div>`).join(''):'<p>Exploraste sin crear operaciones. Confirma una venta o solicita un abono para generar evidencia en esta sesión.</p>'}</div><div class="exp-inline-actions">${btn('Abrir informe ejecutivo','report','primary')}${btn('Evaluar el siguiente paso','evaluate','quiet')}</div><p class="exp-small-note">PWA interna · sin tienda pública, WhatsApp Business ni apps nativas. Integraciones productivas fuera de la demostración.</p></div>`;
   }
   function renderStory() {
     const [chapter,title,desc]=CHAPTERS[model.chapter];
@@ -135,6 +135,7 @@
       if(a==='console'){close();return;}
       if(a==='module'){goApp(['overview','operators','inventory','sales','wallet','audit'][model.chapter]);return;}
       if(a==='report'){goApp('reports');return;}
+      if(a==='evaluate'){goApp('overview');window.NexusDecision?.open('priority');return;}
       if(a==='audit'){goApp('audit',model.sale?.id);return;}
       if(a==='inventory'){goApp('inventory');return;}
       if(a==='operator'){
